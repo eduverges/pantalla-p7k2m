@@ -229,6 +229,7 @@ function pedir(url, ok, fallo) {
     x.send();
   } catch (e) { if (fallo) fallo(); }
 }
+// Google rechaza (error 400) parámetros extra en los enlaces publicados, así que no se añaden.
 function conMarca(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + 't=' + new Date().getTime(); }
 
 function leerCSV(texto) {
@@ -351,7 +352,7 @@ function cargarAvisos() {
     pintarAvisos();
     return;
   }
-  pedir(conMarca(CONFIG.AVISOS_CSV), function (t) {
+  pedir(CONFIG.AVISOS_CSV, function (t) {
     filasAvisos = leerCSV(t); guardar('avisos', t); ultimoOkAvisos = new Date().getTime();
     pintarAvisos(); pintarEstado();
   }, function () {
@@ -375,7 +376,7 @@ function idDrive(enlace) {
 
 function cargarFotos() {
   if (!CONFIG.FOTOS_CSV) { if (document.body.className.indexOf('demofotos') < 0) document.body.className += ' demofotos'; $('fotoVacia').innerHTML = escapar(L.sinFotos); return; }
-  pedir(conMarca(CONFIG.FOTOS_CSV), function (t) { guardar('fotos', t); usarFotos(t); },
+  pedir(CONFIG.FOTOS_CSV, function (t) { guardar('fotos', t); usarFotos(t); },
     function () { var t = leer('fotos'); if (t && !fotos.length) usarFotos(t); });
 }
 
