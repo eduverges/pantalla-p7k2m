@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pantalla</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Atkinson Hyperlegible', Verdana, Arial, sans-serif;
+    -webkit-user-select: none; user-select: none; cursor: none;
+    -webkit-transition: background-color 3s, color 3s; transition: background-color 3s, color 3s;
+  }
+  #app { height: 100%; box-sizing: border-box; padding: 4vh 4vw; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
+  #arriba { -webkit-flex: 1 1 auto; flex: 1 1 auto; display: -webkit-flex; display: flex; min-height: 0; }
+  #izq { -webkit-flex: 1 1 auto; flex: 1 1 auto; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: center; justify-content: center; min-width: 0; overflow: hidden; }
+  #der { width: 36vw; margin-left: 3vw; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
+
+  #momento { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; font-size: 5.6vh; font-weight: 700; line-height: 1.1; }
+  #icono { width: 8vh; height: 8vh; margin-right: 2vh; -webkit-flex: 0 0 auto; flex: 0 0 auto; }
+  #icono svg { width: 100%; height: 100%; display: block; }
+  #hora { font-size: 23vh; font-weight: 700; line-height: .95; letter-spacing: -.02em; margin: 1vh 0 1vh -.5vh; }
+  #dia { font-size: 8vh; font-weight: 700; line-height: 1; }
+  #fecha { font-size: 5.4vh; line-height: 1.2; margin-top: .8vh; }
+  #tiempo { font-size: 4.4vh; line-height: 1.2; margin-top: 2vh; }
+  #consejo { font-size: 3.8vh; line-height: 1.25; margin-top: .6vh; font-weight: 700; }
+
+  #fotoCaja { -webkit-flex: 1 1 auto; flex: 1 1 auto; position: relative; border-radius: 2.4vh; overflow: hidden; min-height: 0; }
+  #foto { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; -webkit-transition: opacity 1.5s; transition: opacity 1.5s; }
+  #foto.visible { opacity: 1; }
+  #fotoVacia { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; text-align: center; padding: 4vh; box-sizing: border-box; font-size: 3.4vh; line-height: 1.3; border: .4vh dashed; border-radius: 2.4vh; }
+  #fotoNombre { font-size: 4.8vh; font-weight: 700; line-height: 1.15; text-align: center; margin-top: 1.6vh; min-height: 5.5vh; }
+
+  #abajo { -webkit-flex: 0 0 auto; flex: 0 0 auto; height: 29vh; box-sizing: border-box; overflow: hidden; margin-top: 2.5vh; padding-top: 2vh; border-top: .4vh solid; }
+  #hoyTitulo { font-size: 3.8vh; font-weight: 700; margin-bottom: 1.2vh; }
+  #avisos { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+  .aviso { width: 50%; box-sizing: border-box; padding-right: 3vw; display: -webkit-flex; display: flex; -webkit-align-items: baseline; align-items: baseline; font-size: 4.2vh; line-height: 1.2; margin-bottom: 1.2vh; }
+  .aviso .h { font-weight: 700; -webkit-flex: 0 0 auto; flex: 0 0 auto; min-width: 3.3em; }
+  .aviso .t { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .aviso.pasado { opacity: .45; }
+  .tranquilo { font-size: 4.6vh; line-height: 1.2; }
+
+  #estado { position: fixed; right: 1.2vh; bottom: 1.2vh; width: 1.2vh; height: 1.2vh; border-radius: 50%; background: #B03A2E; display: none; }
+
+  .sinfotos #der { display: none; }
+  .demofotos #fotoVacia { display: -webkit-flex; display: flex; }
+
+  /* Momentos del día: todo el fondo cambia para que se note sin leer */
+  .m-manana   { background: #DDEBF4; color: #14324D; }
+  .m-manana #abajo, .m-manana #fotoVacia { border-color: #A6C3DA; }
+  .m-mediodia { background: #FBF0CF; color: #3B2C06; }
+  .m-mediodia #abajo, .m-mediodia #fotoVacia { border-color: #E2CC8C; }
+  .m-tarde    { background: #F4DCC6; color: #4A2412; }
+  .m-tarde #abajo, .m-tarde #fotoVacia { border-color: #DBAE8D; }
+  .m-noche    { background: #0D1830; color: #A9B7D2; }
+  .m-noche #abajo, .m-noche #fotoVacia { border-color: #26365A; }
+  .m-noche #hora { color: #C6D0E4; }
+  .m-noche #foto.visible { opacity: .35; }
+
+  /* Alerta de timbre / portero: parpadeo lento (menos de 1 vez por segundo) */
+  #alerta { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: none; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; text-align: center; padding: 6vh 6vw; box-sizing: border-box; background: #B71C1C; color: #FFFFFF; z-index: 10; cursor: default; }
+  #alerta.on { display: -webkit-flex; display: flex; }
+  #alerta.apagado { background: #5C0F0F; }
+  #alertaIcono svg { width: 22vh; height: 22vh; display: block; margin: 0 auto 4vh; }
+  #alertaTitulo { font-size: 13vh; font-weight: 700; line-height: 1.05; }
+  #alertaTexto { font-size: 6vh; line-height: 1.25; margin-top: 4vh; max-width: 22em; }
+
+  @media (orientation: portrait) {
+    #arriba { -webkit-flex-direction: column; flex-direction: column; }
+    #der { width: auto; margin: 3vh 0 0; height: 30vh; -webkit-flex: 0 0 auto; flex: 0 0 auto; }
+    #hora { font-size: 30vw; }
+    #dia { font-size: 10vw; }
+    #fecha, #momento { font-size: 5.5vw; }
+    #tiempo, #consejo, .aviso, .tranquilo, #fotoNombre { font-size: 4.5vw; }
+    .aviso { width: 100%; }
+  }
+</style>
+</head>
+<body class="m-manana">
+<div id="app">
+  <div id="arriba">
+    <div id="izq">
+      <div id="momento"><span id="icono"></span><span id="momentoTxt"></span></div>
+      <div id="hora"></div>
+      <div id="dia"></div>
+      <div id="fecha"></div>
+      <div id="tiempo"></div>
+      <div id="consejo"></div>
+    </div>
+    <div id="der">
+      <div id="fotoCaja"><img id="foto" alt=""><div id="fotoVacia"></div></div>
+      <div id="fotoNombre"></div>
+    </div>
+  </div>
+  <div id="abajo">
+    <div id="hoyTitulo"></div>
+    <div id="avisos"></div>
+  </div>
+  <div id="estado"></div>
+</div>
+<div id="alerta"><div id="alertaIcono"></div><div id="alertaTitulo"></div><div id="alertaTexto"></div></div>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN: cambia solo esta parte
+   ===================================================================== */
+var CONFIG = {
+  IDIOMA: 'es',            // 'es' = castellano, 'ca' = català
+  NOMBRE: '',              // Nombre de la abuela, p. ej. 'Montse'. Vacío = no se muestra.
+
+  // Coordenadas del pueblo de la abuela (búscalas en Google Maps: clic derecho en el mapa).
+  LATITUD: 41.39,
+  LONGITUD: 2.17,
+
+  // Enlaces .csv de "Publicar en la web" de tu hoja de Google (paso 2 de la guía).
+  // Si los dejas vacíos, la pantalla muestra datos de ejemplo.
+  AVISOS_CSV: '',
+  FOTOS_CSV: '',
+
+  FORMATO_12H: false,      // true = "5:30" en vez de "17:30"
+  // Hora a la que empieza cada momento del día
+  HORAS: { manana: 7, mediodia: 13, tarde: 16, noche: 21 },
+  SEGUNDOS_POR_FOTO: 20,
+  MINUTOS_ENTRE_ACTUALIZACIONES: 5,
+
+  // Avisos de timbre y portero (apartado "Timbre y portero" de la guía).
+  // Nombre secreto del tema de ntfy, el mismo que en avisos-puerta.yaml. Vacío = desactivado.
+  AVISOS_PUERTA_TEMA: '',
+  SEGUNDOS_ALERTA: 60      // la alerta se quita sola pasado este tiempo, o tocando la pantalla
+};
+/* ===================================================================== */
+
+/* Configuración privada: si la dirección lleva #avisos=...&fotos=..., esos datos
+   mandan sobre los de arriba. Lo que va detrás de # nunca se envía a GitHub. */
+(function () {
+  var h = location.hash.replace(/^#/, '');
+  if (!h || h === 'configurar') return;
+  var mapa = { avisos: 'AVISOS_CSV', fotos: 'FOTOS_CSV', nombre: 'NOMBRE', idioma: 'IDIOMA', lat: 'LATITUD', lon: 'LONGITUD', tema: 'AVISOS_PUERTA_TEMA' };
+  var partes = h.split('&');
+  for (var i = 0; i < partes.length; i++) {
+    var p = partes[i].indexOf('=');
+    if (p < 1) continue;
+    var k = mapa[partes[i].slice(0, p)];
+    if (!k) continue;
+    var v = '';
+    try { v = decodeURIComponent(partes[i].slice(p + 1)); } catch (e) { continue; }
+    CONFIG[k] = (k === 'LATITUD' || k === 'LONGITUD') ? parseFloat(v) : v;
+  }
+})();
+
+var T = {
+  es: {
+    dias: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
+    meses: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+    fecha: function (d, m, a) { return d + ' de ' + m + ' de ' + a; },
+    momento: { manana: 'Ahora es por la mañana', mediodia: 'Ahora es mediodía', tarde: 'Ahora es por la tarde', noche: 'Ahora es de noche' },
+    descansar: 'Es hora de descansar.',
+    hoy: 'Hoy',
+    tranquilo: 'Hoy no hay nada apuntado. Día tranquilo.',
+    grados: 'grados',
+    cielo: { sol: 'Hace sol', despejado: 'Cielo despejado', nubes: 'Algunas nubes', nublado: 'Está nublado', niebla: 'Hay niebla', lluvia: 'Llueve', nieve: 'Nieva', tormenta: 'Hay tormenta' },
+    lluvia: 'Hoy puede llover. Si sales, coge el paraguas.',
+    frio: 'Hoy hace frío. Si sales, abrígate bien.',
+    calor: 'Hoy hace calor. Recuerda beber agua.',
+    sinFotos: 'Aquí saldrán las fotos de la familia con su nombre. Se añaden en la pestaña Fotos de la hoja de Google.',
+    timbreTitulo: 'Llaman a la puerta',
+    timbreTexto: 'Alguien ha tocado el timbre. Mira por la mirilla antes de abrir.',
+    porteroTitulo: 'Llaman al portero',
+    porteroTexto: 'Mira la pantalla del portero para ver quién es.',
+    demo: 'Cuándo,Hora,Texto\ncada día,13:30,Hora de comer\n{HOY},17:00,Viene Marta a merendar\ncada día,21:30,Ponerse el pijama y tomar la cena'
+  },
+  ca: {
+    dias: ['diumenge', 'dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte'],
+    meses: ['gener', 'febrer', 'març', 'abril', 'maig', 'juny', 'juliol', 'agost', 'setembre', 'octubre', 'novembre', 'desembre'],
+    fecha: function (d, m, a) { return d + (/^[aeiou]/.test(m) ? " d'" : ' de ') + m + ' de ' + a; },
+    momento: { manana: 'Ara és de matí', mediodia: 'Ara és migdia', tarde: 'Ara és de tarda', noche: 'Ara és de nit' },
+    descansar: 'És hora de descansar.',
+    hoy: 'Avui',
+    tranquilo: 'Avui no hi ha res apuntat. Dia tranquil.',
+    grados: 'graus',
+    cielo: { sol: 'Fa sol', despejado: 'Cel serè', nubes: 'Alguns núvols', nublado: 'Està ennuvolat', niebla: 'Hi ha boira', lluvia: 'Plou', nieve: 'Neva', tormenta: 'Hi ha tempesta' },
+    lluvia: "Avui pot ploure. Si surts, agafa el paraigua.",
+    frio: "Avui fa fred. Si surts, abriga't bé.",
+    calor: 'Avui fa calor. Recorda beure aigua.',
+    sinFotos: "Aquí sortiran les fotos de la família amb el seu nom. S'afegeixen a la pestanya Fotos del full de Google.",
+    timbreTitulo: 'Truquen a la porta',
+    timbreTexto: "Algú ha tocat el timbre. Mira per l'espiell abans d'obrir.",
+    porteroTitulo: 'Truquen al porter',
+    porteroTexto: 'Mira la pantalla del porter per veure qui és.',
+    demo: 'Quan,Hora,Text\ncada dia,13:30,Hora de dinar\n{HOY},17:00,Ve la Marta a berenar\ncada dia,21:30,Posar-se el pijama i sopar'
+  }
+};
+var L = T[CONFIG.IDIOMA] || T.es;
+document.documentElement.lang = CONFIG.IDIOMA;
+
+var ICONOS = {
+  sol: '<svg viewBox="0 0 100 100"><g stroke="#E39A2D" stroke-width="7" stroke-linecap="round"><line x1="50" y1="6" x2="50" y2="18"/><line x1="50" y1="82" x2="50" y2="94"/><line x1="6" y1="50" x2="18" y2="50"/><line x1="82" y1="50" x2="94" y2="50"/><line x1="19" y1="19" x2="27" y2="27"/><line x1="73" y1="73" x2="81" y2="81"/><line x1="19" y1="81" x2="27" y2="73"/><line x1="73" y1="27" x2="81" y2="19"/></g><circle cx="50" cy="50" r="22" fill="#F0B23E"/></svg>',
+  tarde: '<svg viewBox="0 0 100 100"><path d="M18 70 A32 32 0 0 1 82 70 Z" fill="#E07B39"/><g stroke="#E07B39" stroke-width="7" stroke-linecap="round"><line x1="50" y1="18" x2="50" y2="28"/><line x1="16" y1="38" x2="23" y2="45"/><line x1="84" y1="38" x2="77" y2="45"/><line x1="6" y1="80" x2="94" y2="80"/></g></svg>',
+  luna: '<svg viewBox="0 0 100 100"><path d="M64 10 A40 40 0 1 0 90 66 A32 32 0 1 1 64 10 Z" fill="#D9E0EE"/></svg>',
+  campana: '<svg viewBox="0 0 100 100"><path d="M50 10 C32 10 24 26 24 44 L24 62 L14 74 L86 74 L76 62 L76 44 C76 26 68 10 50 10 Z" fill="#FFFFFF"/><circle cx="50" cy="84" r="9" fill="#FFFFFF"/></svg>',
+  portero: '<svg viewBox="0 0 100 100"><rect x="22" y="8" width="56" height="84" rx="8" fill="none" stroke="#FFFFFF" stroke-width="7"/><rect x="32" y="20" width="36" height="28" rx="3" fill="#FFFFFF"/><circle cx="50" cy="70" r="8" fill="#FFFFFF"/></svg>'
+};
+
+var $ = function (id) { return document.getElementById(id); };
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function mayus(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function escapar(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function sinAcentos(s) {
+  var a = 'áàäâéèëêíìïîóòöôúùüûñç', b = 'aaaaeeeeiiiioooouuuunc', r = '';
+  s = String(s).toLowerCase();
+  for (var i = 0; i < s.length; i++) { var k = a.indexOf(s.charAt(i)); r += k >= 0 ? b.charAt(k) : s.charAt(i); }
+  return r.replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+}
+function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+function pedir(url, ok, fallo) {
+  try {
+    var x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.timeout = 20000;
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) return;
+      if (x.status >= 200 && x.status < 300) ok(x.responseText); else if (fallo) fallo();
+    };
+    x.ontimeout = function () { if (fallo) fallo(); };
+    x.send();
+  } catch (e) { if (fallo) fallo(); }
+}
+function conMarca(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + 't=' + new Date().getTime(); }
+
+function leerCSV(texto) {
+  var filas = [], fila = [], campo = '', comillas = false, c, i;
+  texto = String(texto).replace(/\r/g, '');
+  for (i = 0; i < texto.length; i++) {
+    c = texto.charAt(i);
+    if (comillas) {
+      if (c === '"') { if (texto.charAt(i + 1) === '"') { campo += '"'; i++; } else comillas = false; }
+      else campo += c;
+    } else if (c === '"') comillas = true;
+    else if (c === ',') { fila.push(campo); campo = ''; }
+    else if (c === '\n') { fila.push(campo); filas.push(fila); fila = []; campo = ''; }
+    else campo += c;
+  }
+  if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila); }
+  return filas;
+}
+
+/* ---------- Momento del día, reloj y fecha ---------- */
+var forzado = (location.search.match(/momento=(manana|mediodia|tarde|noche)/) || [])[1];
+
+function momento(d) {
+  if (forzado) return forzado;
+  var h = d.getHours() + d.getMinutes() / 60, H = CONFIG.HORAS;
+  if (h >= H.noche || h < H.manana) return 'noche';
+  if (h >= H.tarde) return 'tarde';
+  if (h >= H.mediodia) return 'mediodia';
+  return 'manana';
+}
+
+function textoHora(min) {
+  var h = Math.floor(min / 60), m = min % 60;
+  if (CONFIG.FORMATO_12H) { h = h % 12; if (h === 0) h = 12; return h + ':' + pad(m); }
+  return pad(h) + ':' + pad(m);
+}
+
+var ultimoMinuto = -1, momentoActual = '';
+function pintarReloj() {
+  var d = new Date(), min = d.getHours() * 60 + d.getMinutes();
+  if (min === ultimoMinuto && !forzado) return;
+  ultimoMinuto = min;
+
+  var mo = momento(d);
+  if (mo !== momentoActual) {
+    momentoActual = mo;
+    document.body.className = document.body.className.replace(/\bm-\w+/g, '') + ' m-' + mo;
+    $('icono').innerHTML = mo === 'noche' ? ICONOS.luna : (mo === 'tarde' ? ICONOS.tarde : ICONOS.sol);
+    pintarTiempo();
+  }
+  var frase = L.momento[mo];
+  if (CONFIG.NOMBRE) frase = CONFIG.NOMBRE + ', ' + frase.charAt(0).toLowerCase() + frase.slice(1);
+  $('momentoTxt').innerHTML = escapar(frase);
+  $('hora').innerHTML = textoHora(min);
+  $('dia').innerHTML = mayus(L.dias[d.getDay()]);
+  $('fecha').innerHTML = escapar(L.fecha(d.getDate(), L.meses[d.getMonth()], d.getFullYear()));
+  pintarAvisos();
+}
+
+/* ---------- Avisos de hoy ---------- */
+var filasAvisos = [], ultimoOkAvisos = new Date().getTime();
+var DIAS_ES = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+var DIAS_CA = ['diumenge', 'dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte'];
+
+function esHoy(cuando, d) {
+  var c = sinAcentos(cuando), m;
+  if (!c) return false;
+  m = c.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (m) {
+    var a = parseInt(m[3], 10); if (a < 100) a += 2000;
+    return parseInt(m[1], 10) === d.getDate() && parseInt(m[2], 10) === d.getMonth() + 1 && a === d.getFullYear();
+  }
+  m = c.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return parseInt(m[3], 10) === d.getDate() && parseInt(m[2], 10) === d.getMonth() + 1 && parseInt(m[1], 10) === d.getFullYear();
+  if (/^(cada dia|diario|todos los dias|tots els dies|siempre|sempre)$/.test(c)) return true;
+  var dow = d.getDay();
+  if (/^(laborables|feiners|entre semana)$/.test(c)) return dow >= 1 && dow <= 5;
+  var partes = c.split(/\s*,\s*|\s+y\s+|\s+i\s+/);
+  for (var i = 0; i < partes.length; i++) {
+    if (partes[i] === DIAS_ES[dow] || partes[i] === DIAS_CA[dow]) return true;
+  }
+  return false;
+}
+
+function minutosDe(hora) {
+  var s = sinAcentos(hora), m = s.match(/(\d{1,2})\s*[:.h]\s*(\d{2})/);
+  if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  m = s.match(/^(\d{1,2})\s*h?$/);
+  return m ? parseInt(m[1], 10) * 60 : null;
+}
+
+function pintarAvisos() {
+  var d = new Date(), ahora = d.getHours() * 60 + d.getMinutes(), lista = [], i;
+  for (i = 1; i < filasAvisos.length; i++) {
+    var f = filasAvisos[i];
+    if (!f || !f[2] || !esHoy(f[0] || '', d)) continue;
+    var mi = minutosDe(f[1] || '');
+    lista.push({ min: mi, texto: f[2], pasado: mi !== null && ahora > mi + 30 });
+  }
+  lista.sort(function (a, b) { return (a.min === null ? -1 : a.min) - (b.min === null ? -1 : b.min); });
+  while (lista.length > 4 && lista[0].pasado) lista.shift();
+  lista = lista.slice(0, 4);
+
+  $('hoyTitulo').innerHTML = L.hoy;
+  if (!lista.length) { $('avisos').innerHTML = '<div class="tranquilo">' + escapar(L.tranquilo) + '</div>'; return; }
+  var html = '';
+  for (i = 0; i < lista.length; i++) {
+    var a = lista[i];
+    html += '<div class="aviso' + (a.pasado ? ' pasado' : '') + '"><span class="h">' +
+      (a.pasado ? '&#10003;' : (a.min !== null ? textoHora(a.min) : '&#8226;')) +
+      '</span><span class="t">' + escapar(a.texto) + '</span></div>';
+  }
+  $('avisos').innerHTML = html;
+}
+
+function cargarAvisos() {
+  if (!CONFIG.AVISOS_CSV) {
+    var d = new Date();
+    filasAvisos = leerCSV(L.demo.replace('{HOY}', d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear()));
+    pintarAvisos();
+    return;
+  }
+  pedir(conMarca(CONFIG.AVISOS_CSV), function (t) {
+    filasAvisos = leerCSV(t); guardar('avisos', t); ultimoOkAvisos = new Date().getTime();
+    pintarAvisos(); pintarEstado();
+  }, function () {
+    var t = leer('avisos'); if (t && !filasAvisos.length) { filasAvisos = leerCSV(t); pintarAvisos(); }
+    pintarEstado();
+  });
+}
+
+function pintarEstado() {
+  var viejo = CONFIG.AVISOS_CSV && (new Date().getTime() - ultimoOkAvisos > 30 * 60000);
+  $('estado').style.display = viejo ? 'block' : 'none';
+}
+
+/* ---------- Fotos ---------- */
+var fotos = [], indiceFoto = -1, fallosSeguidos = 0;
+
+function idDrive(enlace) {
+  var m = enlace.match(/\/d\/([\w-]{20,})/) || enlace.match(/[?&]id=([\w-]{20,})/);
+  return m ? m[1] : null;
+}
+
+function cargarFotos() {
+  if (!CONFIG.FOTOS_CSV) { if (document.body.className.indexOf('demofotos') < 0) document.body.className += ' demofotos'; $('fotoVacia').innerHTML = escapar(L.sinFotos); return; }
+  pedir(conMarca(CONFIG.FOTOS_CSV), function (t) { guardar('fotos', t); usarFotos(t); },
+    function () { var t = leer('fotos'); if (t && !fotos.length) usarFotos(t); });
+}
+
+function usarFotos(t) {
+  var filas = leerCSV(t), nuevas = [];
+  for (var i = 1; i < filas.length; i++) {
+    var enlace = (filas[i][0] || '').replace(/^\s+|\s+$/g, '');
+    if (!enlace) continue;
+    var id = idDrive(enlace);
+    nuevas.push({
+      src: id ? 'https://drive.google.com/thumbnail?id=' + id + '&sz=w1600' : enlace,
+      alt: id ? 'https://lh3.googleusercontent.com/d/' + id + '=w1600' : null,
+      nombre: filas[i][1] || ''
+    });
+  }
+  var habia = fotos.length;
+  fotos = nuevas;
+  document.body.className = document.body.className.replace(/\s*sinfotos/g, '') + (fotos.length ? '' : ' sinfotos');
+  if (!habia && fotos.length) siguienteFoto();
+}
+
+function siguienteFoto() {
+  if (!fotos.length) return;
+  indiceFoto = (indiceFoto + 1) % fotos.length;
+  var f = fotos[indiceFoto], img = new Image(), probadoAlt = false;
+  img.onload = function () {
+    fallosSeguidos = 0;
+    var el = $('foto');
+    el.className = '';
+    setTimeout(function () {
+      el.src = img.src;
+      $('fotoNombre').innerHTML = escapar(f.nombre);
+      el.className = 'visible';
+    }, 600);
+  };
+  img.onerror = function () {
+    if (f.alt && !probadoAlt) { probadoAlt = true; img.src = f.alt; return; }
+    fallosSeguidos++;
+    if (fallosSeguidos < fotos.length) siguienteFoto();
+  };
+  img.src = f.src;
+}
+
+/* ---------- Tiempo (Open-Meteo, sin clave) ---------- */
+var datosTiempo = null;
+
+function cielo(code, esDia) {
+  var c = L.cielo;
+  if (code === 0) return esDia ? c.sol : c.despejado;
+  if (code <= 2) return c.nubes;
+  if (code === 3) return c.nublado;
+  if (code === 45 || code === 48) return c.niebla;
+  if (code >= 95) return c.tormenta;
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return c.nieve;
+  return c.lluvia;
+}
+
+function cargarTiempo() {
+  var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + CONFIG.LATITUD + '&longitude=' + CONFIG.LONGITUD +
+    '&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,precipitation_probability_max&timezone=auto&forecast_days=1';
+  pedir(url, function (t) {
+    try { datosTiempo = JSON.parse(t); guardar('tiempo', t); } catch (e) {}
+    pintarTiempo();
+  }, function () {
+    if (!datosTiempo) { try { datosTiempo = JSON.parse(leer('tiempo')); } catch (e) {} }
+    pintarTiempo();
+  });
+}
+
+function pintarTiempo() {
+  var consejo = '';
+  if (datosTiempo && datosTiempo.current) {
+    var cu = datosTiempo.current, da = datosTiempo.daily || {};
+    var maxT = da.temperature_2m_max ? da.temperature_2m_max[0] : null;
+    var lluvia = da.precipitation_probability_max ? da.precipitation_probability_max[0] : 0;
+    $('tiempo').innerHTML = escapar(cielo(cu.weather_code, cu.is_day === 1) + ', ' + Math.round(cu.temperature_2m) + ' ' + L.grados);
+    if (lluvia >= 50 || (cu.weather_code >= 51 && cu.weather_code <= 82)) consejo = L.lluvia;
+    else if (maxT !== null && maxT < 14) consejo = L.frio;
+    else if (maxT !== null && maxT >= 31) consejo = L.calor;
+  }
+  if (momentoActual === 'noche') consejo = L.descansar;
+  $('consejo').innerHTML = escapar(consejo);
+}
+
+/* ---------- Timbre y portero (avisos por ntfy.sh) ---------- */
+var finAlerta = null, parpadeo = null;
+
+function mostrarAlerta(tipo) {
+  var t = tipo === 'portero' ? 'portero' : 'timbre', el = $('alerta');
+  $('alertaIcono').innerHTML = t === 'portero' ? ICONOS.portero : ICONOS.campana;
+  $('alertaTitulo').innerHTML = escapar(L[t + 'Titulo']);
+  $('alertaTexto').innerHTML = escapar(L[t + 'Texto']);
+  clearInterval(parpadeo); clearTimeout(finAlerta);
+  el.className = 'on';
+  parpadeo = setInterval(function () { el.className = el.className === 'on' ? 'on apagado' : 'on'; }, 700);
+  finAlerta = setTimeout(cerrarAlerta, CONFIG.SEGUNDOS_ALERTA * 1000);
+}
+function cerrarAlerta() { clearInterval(parpadeo); clearTimeout(finAlerta); $('alerta').className = ''; }
+$('alerta').onclick = cerrarAlerta;
+function tipoDe(texto) { return /porter/i.test(texto || '') ? 'portero' : 'timbre'; }
+
+function escucharPuerta() {
+  var tema = CONFIG.AVISOS_PUERTA_TEMA;
+  if (!tema) return;
+  var base = 'https://ntfy.sh/' + encodeURIComponent(tema);
+  if (window.EventSource) {
+    var conectar = function () {
+      var es = new EventSource(base + '/sse');
+      es.onmessage = function (e) {
+        try { var m = JSON.parse(e.data); if (m.event === 'message') mostrarAlerta(tipoDe(m.message)); } catch (err) {}
+      };
+      es.onerror = function () { if (es.readyState === 2) setTimeout(conectar, 10000); };
+    };
+    conectar();
+  } else {
+    var desde = Math.floor(new Date().getTime() / 1000);
+    setInterval(function () {
+      pedir(base + '/json?poll=1&since=' + desde, function (t) {
+        var lineas = t.split('\n');
+        for (var i = 0; i < lineas.length; i++) {
+          try { var m = JSON.parse(lineas[i]); if (m.event === 'message') { desde = m.time + 1; mostrarAlerta(tipoDe(m.message)); } } catch (e) {}
+        }
+      });
+    }, 4000);
+  }
+}
+
+/* ---------- Arranque ---------- */
+pintarReloj();
+cargarAvisos();
+cargarFotos();
+cargarTiempo();
+escucharPuerta();
+var prueba = (location.search.match(/alerta=(timbre|portero)/) || [])[1];
+if (prueba) mostrarAlerta(prueba);
+setInterval(pintarReloj, 5000);
+setInterval(cargarAvisos, CONFIG.MINUTOS_ENTRE_ACTUALIZACIONES * 60000);
+setInterval(cargarFotos, CONFIG.MINUTOS_ENTRE_ACTUALIZACIONES * 60000);
+setInterval(cargarTiempo, 30 * 60000);
+setInterval(siguienteFoto, CONFIG.SEGUNDOS_POR_FOTO * 1000);
+// Recarga completa cada 6 horas para recoger cambios en esta página
+setTimeout(function () { if (navigator.onLine !== false) location.reload(); }, 6 * 3600000);
+</script>
+
+<script>
+/* ---------- Configurador: abre la página con #configurar ----------
+   Todo se calcula en tu navegador; no se envía nada a ningún sitio. */
+(function () {
+  if (location.hash !== '#configurar') return;
+  var base = /^https?:/.test(location.protocol) ? location.href.split('#')[0].split('?')[0] : '';
+  var campos = [
+    ['pagina', 'Dirección de tu página (GitHub Pages)', base],
+    ['avisos', 'Enlace .csv de la pestaña Avisos', ''],
+    ['fotos', 'Enlace .csv de la pestaña Fotos', ''],
+    ['nombre', 'Nombre de la abuela (opcional)', ''],
+    ['idioma', 'Idioma: es (castellano) o ca (català)', 'es'],
+    ['lat', 'Latitud (primer número de Google Maps)', ''],
+    ['lon', 'Longitud (segundo número de Google Maps)', ''],
+    ['tema', 'Nombre secreto del timbre (opcional, vacío por ahora)', ''],
+    ['pin', 'PIN de FreeKiosk', '']
+  ];
+  var html = '<div style="max-width:760px;margin:0 auto">' +
+    '<h1 style="font-size:28px;margin:0 0 6px">Configurador de la pantalla</h1>' +
+    '<p style="margin:0 0 20px;font-size:15px;line-height:1.4">Rellena los datos y pulsa Generar. Todo se calcula aquí, en tu ordenador: no se envía ni se guarda en ningún sitio.</p>';
+  for (var i = 0; i < campos.length; i++) {
+    html += '<label style="display:block;font-weight:700;font-size:15px;margin:12px 0 4px">' + campos[i][1] + '</label>' +
+      '<input id="cf_' + campos[i][0] + '" value="' + campos[i][2] + '" style="width:100%;box-sizing:border-box;font-size:15px;padding:8px;border:1px solid #888;border-radius:6px">';
+  }
+  html += '<button id="cf_go" style="margin:20px 0;font-size:17px;font-weight:700;padding:10px 22px;border:0;border-radius:8px;background:#14324D;color:#fff;cursor:pointer">Generar</button>' +
+    '<div id="cf_out" style="display:none">' +
+    '<p style="font-weight:700;margin:8px 0 4px">1. Comando para la ventana negra (cmd), con el marco conectado por USB:</p>' +
+    '<textarea id="cf_cmd" readonly style="width:100%;height:120px;font-family:monospace;font-size:13px;box-sizing:border-box"></textarea>' +
+    '<button id="cf_copy" style="margin:6px 0 16px;padding:6px 14px;font-size:14px">Copiar comando</button>' +
+    '<p style="font-weight:700;margin:8px 0 4px">2. Dirección privada (para probarla en el navegador):</p>' +
+    '<textarea id="cf_url" readonly style="width:100%;height:90px;font-family:monospace;font-size:13px;box-sizing:border-box"></textarea>' +
+    '<p style="font-size:14px;line-height:1.4">Guárdalos solo en tu ordenador. Quien tenga esta dirección puede ver los avisos y las fotos.</p>' +
+    '</div></div>';
+  var caja = document.createElement('div');
+  caja.setAttribute('style', 'position:fixed;top:0;left:0;right:0;bottom:0;overflow:auto;z-index:50;background:#FFFFFF;color:#111111;padding:24px;box-sizing:border-box;cursor:auto;-webkit-user-select:text;user-select:text;font-family:Verdana,Arial,sans-serif');
+  caja.innerHTML = html;
+  document.body.appendChild(caja);
+
+  function val(id) { return document.getElementById('cf_' + id).value.replace(/^\s+|\s+$/g, ''); }
+  document.getElementById('cf_go').onclick = function () {
+    var pagina = val('pagina'), pin = val('pin');
+    if (!/^https:\/\//.test(pagina)) { alert('La dirección de la página debe empezar por https://'); return; }
+    if (!/^\d{4,}$/.test(pin)) { alert('El PIN debe tener al menos 4 cifras'); return; }
+    var claves = ['avisos', 'fotos', 'nombre', 'idioma', 'lat', 'lon', 'tema'], partes = [];
+    for (var i = 0; i < claves.length; i++) {
+      var v = val(claves[i]).replace(/,$/, '');
+      if (v) partes.push(claves[i] + '=' + encodeURIComponent(v).replace(/'/g, '%27'));
+    }
+    var url = pagina + '#' + partes.join('&');
+    document.getElementById('cf_url').value = url;
+    document.getElementById('cf_cmd').value = 'adb shell "am start -n com.freekiosk/.MainActivity --es pin ' + pin + " --es url '" + url + "'\"";
+    document.getElementById('cf_out').style.display = 'block';
+  };
+  document.getElementById('cf_copy').onclick = function () {
+    var t = document.getElementById('cf_cmd');
+    t.focus(); t.select();
+    try { document.execCommand('copy'); this.innerHTML = 'Copiado'; } catch (e) {}
+  };
+})();
+</script>
+</body>
+</html>
